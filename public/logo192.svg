@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="192px" height="192px" viewBox="0 0 192 192" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <!-- Generator: Sketch 51.3 (57544) - http://www.bohemiancoding.com/sketch -->
-    <title>logo</title>
+    <title>logo192</title>
     <desc>Created with Sketch.</desc>
     <defs></defs>
     <g id="logo" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect fill="#F06B50" x="0" y="0" width="192" height="192"></rect>
         <g id="Logo" transform="translate(6.000000, 6.000000)">
             <g id="LogoText" transform="translate(91.602200, 96.281858) rotate(-27.000000) translate(-91.602200, -96.281858) translate(30.102200, 73.781858)" stroke="#FFFFFF" stroke-linecap="square" stroke-width="2">
                 <path d="M0.321862348,0.853530032 L121.98583,0.853530032" id="Line-2"></path>
