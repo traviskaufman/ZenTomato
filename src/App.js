@@ -1,4 +1,6 @@
 /** @jsx jsx */
+import { useReducer } from 'react';
+import useInterval from 'use-interval';
 import { css, jsx } from '@emotion/core';
 import { ThemeProvider } from 'emotion-theming';
 import logo from './logo.svg';
@@ -34,6 +36,7 @@ const styles = {
     }
   `,
   time: css`
+    /* TODO: Make this larger and scale with the size of the screen */
     font-size: 12rem;
     @media (max-width: 720px) {
       font-size: 6rem;
@@ -139,26 +142,84 @@ const styles = {
   `
 }
 
+let INITIAL_STATE = {
+  secondsRemaining: 10,
+  clockStatus: 'stopped',
+}
 function App() {
+  const [state, dispatch] = useReducer((state, action) => {
+    switch (action.type) {
+      // For now these are the same, but semantically they are different,
+      // so I will separate them.
+      case 'play':
+        return {
+          ...state,
+          clockStatus: 'running',
+        };
+      case 'tick':
+        let newSecondsRemaining = state.secondsRemaining - 1;
+        const isFinished = newSecondsRemaining === 0;
+        return {
+          ...state,
+          secondsRemaining: isFinished ? INITIAL_STATE.secondsRemaining : newSecondsRemaining,
+          clockStatus: isFinished ? 'finished' : state.clockStatus,
+        };
+      case 'pause':
+        return {
+          ...state,
+          clockStatus: 'paused'
+        };
+      case 'stop':
+        if (state.clockStatus === 'finished') return state;
+        return INITIAL_STATE;
+      default:
+        throw new Error(`Unrecognized action ${action.type}`);
+    }
+  }, INITIAL_STATE);
+
+  useInterval(() => {
+    dispatch({ type: 'tick' });
+  }, state.clockStatus === 'running' ? 1000 : null);
+
+  const handlePlay = () => dispatch({ type: 'play' });
+
+  const handlePause = () => dispatch({ type: 'pause' });
+
+  const handleStop = () => dispatch({ type: 'stop' });
+
+  const isRunning = state.clockStatus === 'running';
+  // TODO: Def a selector
+  const formattedSeconds = (() => {
+    let minutes = String(Math.floor(state.secondsRemaining / 60));
+    let seconds = String(state.secondsRemaining % 60);
+    if (minutes < 10) {
+      minutes = `0${minutes}`;
+    }
+    if (seconds < 10) {
+      seconds = `0${seconds}`;
+    }
+    return `${minutes}:${seconds}`;
+  })()
+
   return (
     <ThemeProvider theme={theme}>
       <div css={styles.appContainer}>
         {/* TODO: Hidden text in link */}
-        <a css={styles.logo} href="#"><img src={logo} alt="ZenTomato" width="96" height="96" /></a>
+        <a css={styles.logo} href="#menu" title="menu"><img src={logo} alt="ZenTomato" width="96" height="96" /></a>
         <main css={styles.appUI}>
           <section css={styles.segmentBar}>
             <button css={styles.segmentControl} title="cmd+p" onClick={() => console.debug('pomodoro')}>Pomodoro</button>
             <button css={styles.segmentControl} title="cmd+b" onClick={() => console.debug('shortBreak')}>Short break</button>
             <button css={styles.segmentControl} title="cmd+shift+b" onClick={() => console.debug('longBreak')}>Long break</button>
           </section>
-          <time css={styles.time} dateTime="24:05">24:05</time>
+          <time css={styles.time} dateTime={formattedSeconds}>{formattedSeconds}</time>
           <div css={styles.controls}>
-            {/* TODO: Button role? Button itself? */}
-            <button css={styles.control} title="spacebar"><Play /></button>
-            <button css={styles.control} title="cmd+."><Stop /></button>
+            {/* TODO: Accessibility */}
+            <button css={styles.control} title="spacebar" onClick={isRunning ? handlePause : handlePlay}>{isRunning ? <Pause /> : <Play />}</button>
+            <button css={styles.control} title="cmd+." onClick={handleStop}><Stop /></button>
           </div>
         </main>
-        <footer css={styles.footer}><p>A project by <a href="https://traviskaufman.io" target="_blank">Travis Kaufman</a></p></footer>
+        <footer css={styles.footer}><p>A project by <a href="https://traviskaufman.io" target="_blank" rel="noopener noreferrer">Travis Kaufman</a></p></footer>
       </div>
     </ThemeProvider>
   );
