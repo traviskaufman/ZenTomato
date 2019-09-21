@@ -1,9 +1,11 @@
 /** @jsx jsx */
-import { useReducer } from 'react';
+import { useReducer, useEffect } from 'react';
 import useInterval from 'use-interval';
 import { css, jsx } from '@emotion/core';
 import { ThemeProvider } from 'emotion-theming';
+// TODO: Icon fonts?
 import logo from './logo.svg';
+import { ReactComponent as NotificationBell } from './notificationBell.svg';
 import { ReactComponent as Play } from './Play.svg';
 import { ReactComponent as Pause } from './Pause.svg';
 import { ReactComponent as Stop } from './Stop.svg';
@@ -20,19 +22,34 @@ const cssHelpers = {
     background: none;
     border: none;
     appearance: none;
+    outline: none;
+    cursor: pointer;
   `,
 };
 
 const styles = {
-  logo: css`
+  topMenu: css`
     position: fixed;
     top: 20px;
     left: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  `,
+  topMenuItem: css`
+    ${cssHelpers.btnReset};
+    outline: none;
+    cursor: pointer;
     opacity: 0.7;
     transition: opacity 125ms ease;
-
     &:hover {
       opacity: 1;
+    }
+
+    margin-bottom: 20px;
+    &:last-child {
+      margin-bottom: 0;
     }
   `,
   time: css`
@@ -142,9 +159,15 @@ const styles = {
   `
 }
 
+let originalTitle = document.title;
 let INITIAL_STATE = {
-  secondsRemaining: 10,
+  secondsRemaining: 25 * 60,
   clockStatus: 'stopped',
+  notifications: {
+    isRequestingAccess: false,
+    // TODO: Refactor into storage, find a way to know if someone disables permissions in settings.
+    enabled: Boolean(localStorage.getItem('notificationsEnabled')),
+  }
 }
 function App() {
   const [state, dispatch] = useReducer((state, action) => {
@@ -154,6 +177,8 @@ function App() {
       case 'play':
         return {
           ...state,
+          // It's better UX to auto-tick right away. Let's the user know something happened immediately.
+          secondsRemaining: state.secondsRemaining - 1,
           clockStatus: 'running',
         };
       case 'tick':
@@ -171,7 +196,28 @@ function App() {
         };
       case 'stop':
         if (state.clockStatus === 'finished') return state;
-        return INITIAL_STATE;
+        return {
+          ...state,
+          secondsRemaining: INITIAL_STATE.secondsRemaining,
+          clockStatus: 'stopped',
+        };
+      case 'requestNotificationAccess':
+        return {
+          ...state,
+          notifications: {
+            ...state.notifications,
+            isRequestingAccess: true,
+          }
+        };
+      case 'setNotificationsEnabled':
+        return {
+          ...state,
+          notifications: {
+            ...state.notifications,
+            isRequestingAccess: false,
+            enabled: action.payload,
+          },
+        };
       default:
         throw new Error(`Unrecognized action ${action.type}`);
     }
@@ -181,13 +227,6 @@ function App() {
     dispatch({ type: 'tick' });
   }, state.clockStatus === 'running' ? 1000 : null);
 
-  const handlePlay = () => dispatch({ type: 'play' });
-
-  const handlePause = () => dispatch({ type: 'pause' });
-
-  const handleStop = () => dispatch({ type: 'stop' });
-
-  const isRunning = state.clockStatus === 'running';
   // TODO: Def a selector
   const formattedSeconds = (() => {
     let minutes = String(Math.floor(state.secondsRemaining / 60));
@@ -201,11 +240,82 @@ function App() {
     return `${minutes}:${seconds}`;
   })()
 
+  useEffect(() => {
+    switch (state.clockStatus) {
+      case 'running':
+        document.title = `(${formattedSeconds}) ZenTomato`;
+        break;
+      case 'paused':
+        document.title = `⏸(${formattedSeconds}) ZenTomato`
+        break;
+      case 'finished':
+        document.title = `🏁✅ ZenTomato`
+        break;
+      default:
+        document.title = originalTitle;
+        break;
+    }
+  }, [formattedSeconds, state.clockStatus])
+
+  useEffect(() => {
+    (async () => {
+      if (state.notifications.isRequestingAccess) {
+        const permission = await Notification.requestPermission()
+        if (permission === 'denied') {
+          alert('Notifications have been disabled for ZenTomato. You can re-enable them in your browser\'s settings.');
+        }
+        setNotificationsEnabled(permission === 'granted');
+        return
+      }
+      if (state.notifications.enabled) {
+        localStorage.setItem('notificationsEnabled', 'you betcha!');
+      } else {
+        localStorage.removeItem('notificationsEnabled');
+      }
+    })()
+  }, [state.notifications.isRequestingAccess, state.notifications.enabled])
+
+  // TODO: Permission requesting should go into a thunk.
+
+  const handlePlay = () => dispatch({ type: 'play' });
+
+  const handlePause = () => dispatch({ type: 'pause' });
+
+  const handleStop = () => dispatch({ type: 'stop' });
+
+  const requestNotificationAccess = () => dispatch({ type: 'requestNotificationAccess' });
+
+  const setNotificationsEnabled = (enabled) => dispatch({ type: 'setNotificationsEnabled', payload: enabled });
+
+  const handleNotifBellClick = () => {
+    if (Notification.permission !== 'granted') {
+      return requestNotificationAccess();
+    }
+    setNotificationsEnabled(!state.notifications.enabled);
+  }
+
+  const isRunning = state.clockStatus === 'running';
+
+  const notificationBellStyle = theme => css`
+    #bell {
+      transition: fill 125ms ease;
+      fill: ${state.notifications.enabled ? theme.textOnPrimary : 'none'};
+    }
+    margin-right: 8px;
+  `;
+
   return (
     <ThemeProvider theme={theme}>
       <div css={styles.appContainer}>
-        {/* TODO: Hidden text in link */}
-        <a css={styles.logo} href="#menu" title="menu"><img src={logo} alt="ZenTomato" width="96" height="96" /></a>
+        <nav css={styles.topMenu}>
+          {/* TODO: Hidden text in link */}
+          <button css={[styles.logo, styles.topMenuItem]} href="#menu" title="menu"><img src={logo} alt="ZenTomato" width="96" height="96" /></button>
+          <button css={[styles.topMenuItem]}
+            aria-label={`${state.notifications.enabled ? 'Disable' : 'Enable'} notifications`}
+            onClick={handleNotifBellClick}>
+            <NotificationBell css={notificationBellStyle} title={`${state.notifications.enabled ? 'Disable' : 'Enable'} notifications`} />
+          </button>
+        </nav>
         <main css={styles.appUI}>
           <section css={styles.segmentBar}>
             <button css={styles.segmentControl} title="cmd+p" onClick={() => console.debug('pomodoro')}>Pomodoro</button>
