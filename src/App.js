@@ -190,7 +190,6 @@ let INITIAL_STATE = {
   },
   pomodoro: {
     currentCycle: 'pomodoro',
-    history: [],
   },
   theme: {
     primary: '#f06b50',
@@ -359,7 +358,7 @@ function App() {
     if (playPauseBtn.current) {
       playPauseBtn.current.focus();
     }
-  }, []);
+  }, [state.pomodoro.currentCycle]);
 
   useEffect(() => {
     let root = document.querySelector(':root');
