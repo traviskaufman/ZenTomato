@@ -16,3 +16,7 @@ html, body {
 *, *::before, *::after {
   outline-color: var(--theme-secondary);
 }
+
+.js-focus-visible :focus:not(.focus-visible) {
+  outline: none;
+}

@@ -24,7 +24,6 @@ const cssHelpers = {
     background: none;
     border: none;
     appearance: none;
-    outline: none;
     cursor: pointer;
   `,
 };
@@ -41,17 +40,16 @@ const styles = {
   `,
   topMenuItem: css`
     ${cssHelpers.btnReset};
-    outline: none;
     cursor: pointer;
-    opacity: 0.7;
-    transition: opacity 125ms ease;
-    &:hover {
-      opacity: 1;
-    }
+    /* TODO: Refactor with control */
+    transition: transform 125ms ease;
 
     margin-bottom: 20px;
     &:last-child {
       margin-bottom: 0;
+    }
+    &:hover {
+      transform: scale(1.08);
     }
   `,
   time: css`
@@ -87,7 +85,7 @@ const styles = {
   `,
   control: css`
     ${cssHelpers.btnReset}
-    transition: transform 125ms ease;
+    transition: transform 125ms ease, opacity 125ms ease;
     opacity: 1;
     cursor: pointer;
     margin-right: 24px;
@@ -96,6 +94,11 @@ const styles = {
     }
     &:hover {
       transform: scale(1.08);
+    }
+
+    &:disabled {
+      opacity: 0.54;
+      pointer-events: none;
     }
   `,
   segmentBar: theme => css`
@@ -108,6 +111,7 @@ const styles = {
     align-items: center;
     justify-content: space-between;
     z-index: 1;
+    overflow: hidden;
   `,
   segmentControl: isSelected => theme => css`
     ${cssHelpers.btnReset}
@@ -124,20 +128,19 @@ const styles = {
     letter-spacing: 0.5;
     transition: color 125ms ease, background-color 125ms ease;
 
-    &:first-child {
-      border-top-left-radius: inherit;
-      border-bottom-left-radius: inherit;
-    }
-
     &:last-child {
       border-right: none;
-      border-bottom-right-radius: inherit;
-      border-top-right-radius: inherit;
     }
 
-    &:hover {
+    &:hover, &.focus-visible {
       background-color: rgba(255, 255, 255, ${isSelected ? 1 : 0.4});
     }
+    ${isSelected ? css`
+      &.focus-visible {
+        background-color: ${theme.textOnSecondary};
+        color: ${theme.textOnPrimary};
+      }
+    ` : ''}
   `,
   footer: theme => css`
     font-size: 0.75rem;
@@ -166,6 +169,7 @@ let INITIAL_STATE = {
   // TODO: Refactor secondsRemaining and clockStatus into `clock` variable
   secondsRemaining: durationForCycle('pomodoro'),
   clockStatus: 'stopped',
+  // TODO: Progressively degrade if not active.
   notifications: {
     isRequestingAccess: false,
     // TODO: Refactor into storage, find a way to know if someone disables permissions in settings.
@@ -244,26 +248,26 @@ function App() {
       case 'play':
         return {
           ...state,
-          // It's better UX to auto-tick right away. Let's the user know something happened immediately.
-          secondsRemaining: state.secondsRemaining - 1,
           clockStatus: 'running',
         };
       case 'tick':
         let newSecondsRemaining = state.secondsRemaining - 1;
         const isFinished = newSecondsRemaining === 0;
-        return {
+        const isRestart = newSecondsRemaining < 0;
+        let cycleAfterCurrent = nextCycle(state.pomodoro.currentCycle, state.pomodoro.history);
+        let newState = {
           ...state,
-          // TODO: This is wrong. Refactor with logic in selectCycle :)
-          // TODO: Timer should stay at 0 for additional context.
-          secondsRemaining: isFinished ? INITIAL_STATE.secondsRemaining : newSecondsRemaining,
+          secondsRemaining: isRestart ? durationForCycle(state.pomodoro.currentCycle) - 1 : newSecondsRemaining,
           clockStatus: isFinished ? 'finished' : state.clockStatus,
           pomdoro: isFinished ? {
             ...state.pomodoro,
             history: state.pomodoro.history.concat([state.pomodoro.currentCycle]),
             // TODO: Why isn't this working!
-            currentCycle: nextCycle(state.pomodoro.currentCycle, state.pomodoro.history),
+            currentCycle: cycleAfterCurrent,
           } : state.pomodoro,
         };
+        console.debug(newState);
+        return newState;
       case 'pause':
         return {
           ...state,
@@ -347,6 +351,7 @@ function App() {
   useEffect(() => {
     (async () => {
       if (state.notifications.isRequestingAccess) {
+        // TODO: Permission requesting should go into a thunk.
         const permission = await Notification.requestPermission()
         if (permission === 'denied') {
           alert('Notifications have been disabled for ZenTomato. You can re-enable them in your browser\'s settings.');
@@ -366,14 +371,15 @@ function App() {
     if (state.clockStatus === 'finished' && state.notifications.enabled) {
       // TODO: Different notifications for different states.
       // TODO: Actions? See what you might want to do.
-      const notification = new Notification(`Your time is up`, {
+      const finishingPomodoro = state.pomodoro.currentCycle === 'pomodoro';
+      const notification = new Notification(`Your ${finishingPomodoro ? 'pomodoro' : 'break'} is over 😌`, {
         icon: `${process.env.PUBLIC_URL}/logo192.png`,
-        body: 'Take a short break when ready',
+        body: `${finishingPomodoro ? 'Take a short break' : 'Begin your next pomodoro'} when ready`,
       });
       const timer = setTimeout(() => notification.close(), 5000);
       notification.onclose = () => clearTimeout(timer);
     }
-  }, [state.clockStatus, state.notifications.enabled]);
+  }, [state.clockStatus, state.notifications.enabled, state.pomodoro.currentCycle]);
 
   const playPauseBtn = useRef();
   useEffect(() => {
@@ -382,9 +388,11 @@ function App() {
     }
   }, []);
 
-  // TODO: Permission requesting should go into a thunk.
-
-  const handlePlay = () => dispatch({ type: 'play' });
+  const handlePlay = () => {
+    dispatch({ type: 'play' });
+    // Tick right away to let users know somethings happening
+    dispatch({ type: 'tick' });
+  };
 
   const handlePause = () => dispatch({ type: 'pause' });
 
@@ -401,7 +409,13 @@ function App() {
     setNotificationsEnabled(!state.notifications.enabled);
   }
 
-  const selectCycle = (cycle) => dispatch({ type: 'selectCycle', payload: cycle });
+  const selectCycle = (cycle) => {
+    dispatch({ type: 'selectCycle', payload: cycle });
+    if (state.clockStatus === 'finished') {
+      dispatch({ type: 'play' });
+      dispatch({ type: 'tick' });
+    }
+  };
 
   const isRunning = state.clockStatus === 'running';
 
@@ -420,7 +434,7 @@ function App() {
       <div css={styles.appContainer}>
         <nav css={styles.topMenu}>
           {/* TODO: Hidden text in link */}
-          <button css={[styles.logo, styles.topMenuItem]} href="#menu" title="menu"><img src={logo} alt="ZenTomato" width="96" height="96" /></button>
+          <img css={css`margin-bottom: 20px; opacity: 0.7;`} src={logo} alt="Zen Tomato – A project by Travis Kaufman" width="96" height="96" />
           <button css={[styles.topMenuItem]}
             aria-label={`${state.notifications.enabled ? 'Disable' : 'Enable'} notifications`}
             onClick={handleNotifBellClick}>
@@ -439,7 +453,7 @@ function App() {
             <button css={styles.control} title="spacebar" onClick={isRunning ? handlePause : handlePlay} ref={playPauseBtn}>
               {isRunning ? <Pause /> : <Play />}
             </button>
-            <button css={styles.control} title="cmd+." onClick={handleStop}><Stop /></button>
+            <button css={styles.control} disabled={state.clockStatus === 'stopped' || state.clockStatus === 'finished'} title="cmd+." onClick={handleStop}><Stop /></button>
           </div>
         </main>
         <footer css={styles.footer}><p>A project by <a href="https://traviskaufman.io" target="_blank" rel="noopener noreferrer">Travis Kaufman</a></p></footer>
