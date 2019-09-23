@@ -244,7 +244,7 @@ function App() {
         if (state.clockStatus === 'finished') return state;
         return {
           ...state,
-          secondsRemaining: INITIAL_STATE.secondsRemaining,
+          secondsRemaining: durationForCycle(state.pomodoro.currentCycle),
           clockStatus: 'stopped',
         };
       case 'requestNotificationAccess':
