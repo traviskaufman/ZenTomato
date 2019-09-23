@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { useReducer, useEffect } from 'react';
+import { useReducer, useEffect, useRef } from 'react';
 import useInterval from 'use-interval';
 import { css, jsx } from '@emotion/core';
 import { ThemeProvider } from 'emotion-theming';
@@ -9,6 +9,8 @@ import { ReactComponent as NotificationBell } from './notificationBell.svg';
 import { ReactComponent as Play } from './Play.svg';
 import { ReactComponent as Pause } from './Pause.svg';
 import { ReactComponent as Stop } from './Stop.svg';
+
+const DEBUG = process.env.NODE_ENV !== 'production' && /* change this */ true;
 
 const theme = {
   primary: '#f06b50',
@@ -107,11 +109,11 @@ const styles = {
     justify-content: space-between;
     z-index: 1;
   `,
-  segmentControl: theme => css`
+  segmentControl: isSelected => theme => css`
     ${cssHelpers.btnReset}
     text-align: center;
-    background-color: rgba(255, 255, 255, 0);
-    color: ${theme.textOnPrimary};
+    background-color: rgba(255, 255, 255, ${isSelected ? 1 : 0});
+    color: ${isSelected ? theme.textOnSecondary : theme.textOnPrimary};
     border-right: 1px solid ${theme.textOnPrimary};
     display: block;
     width: 100%;
@@ -134,7 +136,7 @@ const styles = {
     }
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.4);
+      background-color: rgba(255, 255, 255, ${isSelected ? 1 : 0.4});
     }
   `,
   footer: theme => css`
@@ -161,14 +163,79 @@ const styles = {
 
 let originalTitle = document.title;
 let INITIAL_STATE = {
-  secondsRemaining: 25 * 60,
+  // TODO: Refactor secondsRemaining and clockStatus into `clock` variable
+  secondsRemaining: durationForCycle('pomodoro'),
   clockStatus: 'stopped',
   notifications: {
     isRequestingAccess: false,
     // TODO: Refactor into storage, find a way to know if someone disables permissions in settings.
     enabled: Boolean(localStorage.getItem('notificationsEnabled')),
+  },
+  pomodoro: {
+    currentCycle: 'pomodoro',
+    history: [],
+  },
+}
+
+function durationForCycle(cycle) {
+  switch (cycle) {
+    case 'pomodoro':
+      return DEBUG ? 3 : 25 * 60;
+    case 'shortBreak':
+      return DEBUG ? 3 : 5 * 60;
+    case 'longBreak':
+      return DEBUG ? 3 : 15 * 60;
+    default:
+      throw new Error(`Unexpected cycle ${cycle}`);
   }
 }
+
+function readyForLongBreak(history) {
+  if (history.count < 7) {
+    return false;
+  }
+  const lastSixBeforeCurrentPom = history.slice(-7, -1);
+  let completedCycles = 0
+  let inPomodoro = false;
+  for (let cycle of lastSixBeforeCurrentPom) {
+    if (cycle === 'longBreak') {
+      // Not enough time passed between a long break
+      return false;
+    }
+
+    if (cycle === 'pomodoro') {
+      if (inPomodoro) {
+        // Two pomodoros right next to one another. Break the cycle.
+        return false;
+      }
+      inPomodoro = true;
+    }
+
+    // Otherwise, cycle === shortBreak
+    if (!inPomodoro) {
+      // Two short breaks next to one another. Break the cycle.
+      return false
+    }
+    // Otherwise, we've completed a cycle!
+    completedCycles++;
+    inPomodoro = false;
+  }
+  return completedCycles === 3;
+}
+
+// TODO: Make into state machine and unit test functionality through reducer.
+function nextCycle(currentCycle, history) {
+  if (currentCycle !== 'pomodoro') {
+    return 'pomodoro';
+  }
+  if (readyForLongBreak(history)) {
+    return 'longBreak';
+  }
+  return 'shortBreak';
+}
+// TODO: A11y and focus states on tab
+// TODO: Focus on play button immediately
+// TODO: Pulsate play button (or some indication when initially loaded)
 function App() {
   const [state, dispatch] = useReducer((state, action) => {
     switch (action.type) {
@@ -186,8 +253,16 @@ function App() {
         const isFinished = newSecondsRemaining === 0;
         return {
           ...state,
+          // TODO: This is wrong. Refactor with logic in selectCycle :)
+          // TODO: Timer should stay at 0 for additional context.
           secondsRemaining: isFinished ? INITIAL_STATE.secondsRemaining : newSecondsRemaining,
           clockStatus: isFinished ? 'finished' : state.clockStatus,
+          pomdoro: isFinished ? {
+            ...state.pomodoro,
+            history: state.pomodoro.history.concat([state.pomodoro.currentCycle]),
+            // TODO: Why isn't this working!
+            currentCycle: nextCycle(state.pomodoro.currentCycle, state.pomodoro.history),
+          } : state.pomodoro,
         };
       case 'pause':
         return {
@@ -218,11 +293,23 @@ function App() {
             enabled: action.payload,
           },
         };
+      case 'selectCycle':
+        // TODO: If the clock state is finished, immediately start.
+        return {
+          ...state,
+          secondsRemaining: durationForCycle(action.payload),
+          clockStatus: 'stopped',
+          pomodoro: {
+            ...state.pomodoro,
+            currentCycle: action.payload,
+          },
+        };
       default:
         throw new Error(`Unrecognized action ${action.type}`);
     }
   }, INITIAL_STATE);
 
+  // FIXME: Why isn't the timer being updated?
   useInterval(() => {
     dispatch({ type: 'tick' });
   }, state.clockStatus === 'running' ? 1000 : null);
@@ -275,6 +362,26 @@ function App() {
     })()
   }, [state.notifications.isRequestingAccess, state.notifications.enabled])
 
+  useEffect(() => {
+    if (state.clockStatus === 'finished' && state.notifications.enabled) {
+      // TODO: Different notifications for different states.
+      // TODO: Actions? See what you might want to do.
+      const notification = new Notification(`Your time is up`, {
+        icon: `${process.env.PUBLIC_URL}/logo192.png`,
+        body: 'Take a short break when ready',
+      });
+      const timer = setTimeout(() => notification.close(), 5000);
+      notification.onclose = () => clearTimeout(timer);
+    }
+  }, [state.clockStatus, state.notifications.enabled]);
+
+  const playPauseBtn = useRef();
+  useEffect(() => {
+    if (playPauseBtn.current) {
+      playPauseBtn.current.focus();
+    }
+  }, []);
+
   // TODO: Permission requesting should go into a thunk.
 
   const handlePlay = () => dispatch({ type: 'play' });
@@ -294,6 +401,8 @@ function App() {
     setNotificationsEnabled(!state.notifications.enabled);
   }
 
+  const selectCycle = (cycle) => dispatch({ type: 'selectCycle', payload: cycle });
+
   const isRunning = state.clockStatus === 'running';
 
   const notificationBellStyle = theme => css`
@@ -303,6 +412,8 @@ function App() {
     }
     margin-right: 8px;
   `;
+
+  const currentCycle = state.pomodoro.currentCycle;
 
   return (
     <ThemeProvider theme={theme}>
@@ -318,14 +429,16 @@ function App() {
         </nav>
         <main css={styles.appUI}>
           <section css={styles.segmentBar}>
-            <button css={styles.segmentControl} title="cmd+p" onClick={() => console.debug('pomodoro')}>Pomodoro</button>
-            <button css={styles.segmentControl} title="cmd+b" onClick={() => console.debug('shortBreak')}>Short break</button>
-            <button css={styles.segmentControl} title="cmd+shift+b" onClick={() => console.debug('longBreak')}>Long break</button>
+            <button css={styles.segmentControl(currentCycle === 'pomodoro')} title="cmd+p" onClick={() => selectCycle('pomodoro')}>Pomodoro</button>
+            <button css={styles.segmentControl(currentCycle === 'shortBreak')} title="cmd+b" onClick={() => selectCycle('shortBreak')}>Short break</button>
+            <button css={styles.segmentControl(currentCycle === 'longBreak')} title="cmd+shift+b" onClick={() => selectCycle('longBreak')}>Long break</button>
           </section>
           <time css={styles.time} dateTime={formattedSeconds}>{formattedSeconds}</time>
           <div css={styles.controls}>
             {/* TODO: Accessibility */}
-            <button css={styles.control} title="spacebar" onClick={isRunning ? handlePause : handlePlay}>{isRunning ? <Pause /> : <Play />}</button>
+            <button css={styles.control} title="spacebar" onClick={isRunning ? handlePause : handlePlay} ref={playPauseBtn}>
+              {isRunning ? <Pause /> : <Play />}
+            </button>
             <button css={styles.control} title="cmd+." onClick={handleStop}><Stop /></button>
           </div>
         </main>
