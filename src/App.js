@@ -11,13 +11,7 @@ import { ReactComponent as Pause } from './Pause.svg';
 import { ReactComponent as Stop } from './Stop.svg';
 
 const DEBUG = process.env.NODE_ENV !== 'production' && /* change this */ true;
-
-const theme = {
-  primary: '#f06b50',
-  secondary: '#fff',
-  textOnPrimary: '#fff',
-  textOnSecondary: '#121212',
-}
+const SUPPORTS_NOTIFS = 'Notification' in window;
 
 const cssHelpers = {
   btnReset: css`
@@ -25,21 +19,33 @@ const cssHelpers = {
     border: none;
     appearance: none;
     cursor: pointer;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  `,
+  hover: css`
+    @media (hover: hover) {
+      &:hover {
+        transform: scale(1.08);
+      }
+    }
   `,
 };
 
 const styles = {
   topMenu: css`
-    position: fixed;
+    position: absolute;
     top: 20px;
     left: 20px;
     display: flex;
     flex-direction: column;
+    @media (max-width: 600px) {
+      flex-direction: row;
+    }
     align-items: center;
     justify-content: center;
   `,
   topMenuItem: css`
     ${cssHelpers.btnReset};
+    ${cssHelpers.hover};
     cursor: pointer;
     /* TODO: Refactor with control */
     transition: transform 125ms ease;
@@ -48,13 +54,18 @@ const styles = {
     &:last-child {
       margin-bottom: 0;
     }
-    &:hover {
-      transform: scale(1.08);
+    @media (max-width: 600px) {
+      margin-bottom: 0;
+      margin-right: 20px;
+      &:last-child {
+        margin-right: 0;
+      }
     }
   `,
   time: css`
     /* TODO: Make this larger and scale with the size of the screen */
     font-size: 12rem;
+    /* TODO: Refactor into smallScreen tagged template literal? */
     @media (max-width: 720px) {
       font-size: 6rem;
     }
@@ -84,16 +95,14 @@ const styles = {
     z-index: 1;
   `,
   control: css`
-    ${cssHelpers.btnReset}
+    ${cssHelpers.btnReset};
+    ${cssHelpers.hover};
     transition: transform 125ms ease, opacity 125ms ease;
     opacity: 1;
     cursor: pointer;
     margin-right: 24px;
     &:last-child {
       margin-right: 0;
-    }
-    &:hover {
-      transform: scale(1.08);
     }
 
     &:disabled {
@@ -151,6 +160,10 @@ const styles = {
     right: 0;
     bottom: 20px;
 
+    @media (max-height: 500px) {
+      display: none;
+    }
+
     a {
       color: ${theme.textOnPrimary};
       text-decoration: none;
@@ -172,13 +185,19 @@ let INITIAL_STATE = {
   // TODO: Progressively degrade if not active.
   notifications: {
     isRequestingAccess: false,
-    // TODO: Refactor into storage, find a way to know if someone disables permissions in settings.
-    enabled: Boolean(localStorage.getItem('notificationsEnabled')),
+    // TODO: Find a way to know if someone disables permissions in settings.
+    enabled: SUPPORTS_NOTIFS && Boolean(localStorage.getItem('notificationsEnabled')),
   },
   pomodoro: {
     currentCycle: 'pomodoro',
     history: [],
   },
+  theme: {
+    primary: '#f06b50',
+    secondary: '#fff',
+    textOnPrimary: '#fff',
+    textOnSecondary: '#121212',
+  }
 }
 
 function durationForCycle(cycle) {
@@ -194,49 +213,6 @@ function durationForCycle(cycle) {
   }
 }
 
-function readyForLongBreak(history) {
-  if (history.count < 7) {
-    return false;
-  }
-  const lastSixBeforeCurrentPom = history.slice(-7, -1);
-  let completedCycles = 0
-  let inPomodoro = false;
-  for (let cycle of lastSixBeforeCurrentPom) {
-    if (cycle === 'longBreak') {
-      // Not enough time passed between a long break
-      return false;
-    }
-
-    if (cycle === 'pomodoro') {
-      if (inPomodoro) {
-        // Two pomodoros right next to one another. Break the cycle.
-        return false;
-      }
-      inPomodoro = true;
-    }
-
-    // Otherwise, cycle === shortBreak
-    if (!inPomodoro) {
-      // Two short breaks next to one another. Break the cycle.
-      return false
-    }
-    // Otherwise, we've completed a cycle!
-    completedCycles++;
-    inPomodoro = false;
-  }
-  return completedCycles === 3;
-}
-
-// TODO: Make into state machine and unit test functionality through reducer.
-function nextCycle(currentCycle, history) {
-  if (currentCycle !== 'pomodoro') {
-    return 'pomodoro';
-  }
-  if (readyForLongBreak(history)) {
-    return 'longBreak';
-  }
-  return 'shortBreak';
-}
 // TODO: A11y and focus states on tab
 // TODO: Focus on play button immediately
 // TODO: Pulsate play button (or some indication when initially loaded)
@@ -254,19 +230,11 @@ function App() {
         let newSecondsRemaining = state.secondsRemaining - 1;
         const isFinished = newSecondsRemaining === 0;
         const isRestart = newSecondsRemaining < 0;
-        let cycleAfterCurrent = nextCycle(state.pomodoro.currentCycle, state.pomodoro.history);
         let newState = {
           ...state,
           secondsRemaining: isRestart ? durationForCycle(state.pomodoro.currentCycle) - 1 : newSecondsRemaining,
           clockStatus: isFinished ? 'finished' : state.clockStatus,
-          pomdoro: isFinished ? {
-            ...state.pomodoro,
-            history: state.pomodoro.history.concat([state.pomodoro.currentCycle]),
-            // TODO: Why isn't this working!
-            currentCycle: cycleAfterCurrent,
-          } : state.pomodoro,
         };
-        console.debug(newState);
         return newState;
       case 'pause':
         return {
@@ -307,6 +275,11 @@ function App() {
             ...state.pomodoro,
             currentCycle: action.payload,
           },
+          theme: {
+            ...state.theme,
+            primary: action.payload === 'pomodoro' ? '#f06b50' : (action.payload === 'shortBreak' ? '#0e4ead' : '#07093d'),
+            textOnSecondary: action.payload === 'longBreak' ? '#107fc9' : '#121212',
+          }
         };
       default:
         throw new Error(`Unrecognized action ${action.type}`);
@@ -388,6 +361,14 @@ function App() {
     }
   }, []);
 
+  useEffect(() => {
+    let root = document.querySelector(':root');
+    root.style.setProperty('--theme-primary', state.theme.primary);
+    root.style.setProperty('--theme-secondary', state.theme.secondary);
+    // Theme-text-on-primary is computed
+    root.style.setProperty('--theme-text-on-secondary', state.theme.textOnSecondary);
+  }, [state.theme]);
+
   const handlePlay = () => {
     dispatch({ type: 'play' });
     // Tick right away to let users know somethings happening
@@ -430,30 +411,31 @@ function App() {
   const currentCycle = state.pomodoro.currentCycle;
 
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={state.theme}>
       <div css={styles.appContainer}>
         <nav css={styles.topMenu}>
           {/* TODO: Hidden text in link */}
           <img css={css`margin-bottom: 20px; opacity: 0.7;`} src={logo} alt="Zen Tomato – A project by Travis Kaufman" width="96" height="96" />
           <button css={[styles.topMenuItem]}
             aria-label={`${state.notifications.enabled ? 'Disable' : 'Enable'} notifications`}
-            onClick={handleNotifBellClick}>
+            onClick={handleNotifBellClick}
+            hidden={!SUPPORTS_NOTIFS}>
             <NotificationBell css={notificationBellStyle} title={`${state.notifications.enabled ? 'Disable' : 'Enable'} notifications`} />
           </button>
         </nav>
         <main css={styles.appUI}>
           <section css={styles.segmentBar}>
-            <button css={styles.segmentControl(currentCycle === 'pomodoro')} title="cmd+p" onClick={() => selectCycle('pomodoro')}>Pomodoro</button>
-            <button css={styles.segmentControl(currentCycle === 'shortBreak')} title="cmd+b" onClick={() => selectCycle('shortBreak')}>Short break</button>
-            <button css={styles.segmentControl(currentCycle === 'longBreak')} title="cmd+shift+b" onClick={() => selectCycle('longBreak')}>Long break</button>
+            <button css={styles.segmentControl(currentCycle === 'pomodoro')} onClick={() => selectCycle('pomodoro')}>Pomodoro</button>
+            <button css={styles.segmentControl(currentCycle === 'shortBreak')} onClick={() => selectCycle('shortBreak')}>Short break</button>
+            <button css={styles.segmentControl(currentCycle === 'longBreak')} onClick={() => selectCycle('longBreak')}>Long break</button>
           </section>
           <time css={styles.time} dateTime={formattedSeconds}>{formattedSeconds}</time>
           <div css={styles.controls}>
             {/* TODO: Accessibility */}
-            <button css={styles.control} title="spacebar" onClick={isRunning ? handlePause : handlePlay} ref={playPauseBtn}>
+            <button css={styles.control} onClick={isRunning ? handlePause : handlePlay} ref={playPauseBtn}>
               {isRunning ? <Pause /> : <Play />}
             </button>
-            <button css={styles.control} disabled={state.clockStatus === 'stopped' || state.clockStatus === 'finished'} title="cmd+." onClick={handleStop}><Stop /></button>
+            <button css={styles.control} disabled={state.clockStatus === 'stopped' || state.clockStatus === 'finished'} onClick={handleStop}><Stop /></button>
           </div>
         </main>
         <footer css={styles.footer}><p>A project by <a href="https://traviskaufman.io" target="_blank" rel="noopener noreferrer">Travis Kaufman</a></p></footer>

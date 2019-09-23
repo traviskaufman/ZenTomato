@@ -10,11 +10,15 @@ html, body {
   height: 100%;
   margin: 0;
   font-family: 'Open Sans', sans-serif;
-  background: var(--theme-primary);
+  background-color: var(--theme-primary);
 }
 
 *, *::before, *::after {
   outline-color: var(--theme-secondary);
+}
+
+.app-loaded body {
+  transition: background-color 400ms ease-in;
 }
 
 .js-focus-visible :focus:not(.focus-visible) {
