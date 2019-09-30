@@ -212,11 +212,33 @@ function durationForCycle(cycle) {
   }
 }
 
+const RUN_KEY = 'runningUnloadInfo'
+function catchUnload(state) {
+  if (state.clockStatus === 'running') {
+    localStorage.setItem(RUN_KEY, JSON.stringify({
+      timeUnloaded: Date.now(),
+      state
+    }));
+  }
+}
+
+if (RUN_KEY in localStorage) {
+  try {
+    const unloadInfo = JSON.parse(localStorage.getItem(RUN_KEY));
+    const unloadHappenedLessThan10sAgo = Date.now() - unloadInfo.timeUnloaded < 10000;
+    if (unloadHappenedLessThan10sAgo) {
+      INITIAL_STATE = unloadInfo.state;
+    }
+  } catch (err) {
+    console.warn('Could not restore state from previous session:', err);
+  } finally {
+    localStorage.removeItem(RUN_KEY);
+  }
+}
+
 // TODO: Pulsate play button (or some indication when initially loaded)
 // TODO: Starry constellation
 // TODO: Keyboard shortcuts
-// TODO: Save running state and resume where left off if the app is still running and it was closed / re-opened in
-//  less than 10 seconds.
 function App() {
   const [state, dispatch] = useReducer((state, action) => {
     switch (action.type) {
@@ -304,6 +326,12 @@ function App() {
     }
     return `${minutes}:${seconds}`;
   })()
+
+  useEffect(() => {
+    const catchUnloadForState = () => catchUnload(state);
+    window.addEventListener('unload', catchUnloadForState);
+    return () => window.removeEventListener('unload', catchUnloadForState);
+  }, [state]);
 
   useEffect(() => {
     switch (state.clockStatus) {
