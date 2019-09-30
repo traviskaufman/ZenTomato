@@ -4,11 +4,11 @@ import useInterval from 'use-interval';
 import { css, jsx } from '@emotion/core';
 import { ThemeProvider } from 'emotion-theming';
 // TODO: Icon fonts?
-import logo from './logo.svg';
-import { ReactComponent as NotificationBell } from './notificationBell.svg';
-import { ReactComponent as Play } from './Play.svg';
-import { ReactComponent as Pause } from './Pause.svg';
-import { ReactComponent as Stop } from './Stop.svg';
+import logo from './assets/logo.svg';
+import { ReactComponent as NotificationBell } from './assets/notificationBell.svg';
+import { ReactComponent as Play } from './assets/Play.svg';
+import { ReactComponent as Pause } from './assets/Pause.svg';
+import { ReactComponent as Stop } from './assets/Stop.svg';
 
 const DEBUG = process.env.NODE_ENV !== 'production' && /* change this */ true;
 const SUPPORTS_NOTIFS = 'Notification' in window;
@@ -212,9 +212,11 @@ function durationForCycle(cycle) {
   }
 }
 
-// TODO: A11y and focus states on tab
-// TODO: Focus on play button immediately
 // TODO: Pulsate play button (or some indication when initially loaded)
+// TODO: Starry constellation
+// TODO: Keyboard shortcuts
+// TODO: Save running state and resume where left off if the app is still running and it was closed / re-opened in
+//  less than 10 seconds.
 function App() {
   const [state, dispatch] = useReducer((state, action) => {
     switch (action.type) {
@@ -341,8 +343,6 @@ function App() {
 
   useEffect(() => {
     if (state.clockStatus === 'finished' && state.notifications.enabled) {
-      // TODO: Different notifications for different states.
-      // TODO: Actions? See what you might want to do.
       const finishingPomodoro = state.pomodoro.currentCycle === 'pomodoro';
       const notification = new Notification(`Your ${finishingPomodoro ? 'pomodoro' : 'break'} is over 😌`, {
         icon: `${process.env.PUBLIC_URL}/logo192.png`,
