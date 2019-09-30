@@ -309,7 +309,6 @@ function App() {
     }
   }, INITIAL_STATE);
 
-  // FIXME: Why isn't the timer being updated?
   useInterval(() => {
     dispatch({ type: 'tick' });
   }, state.clockStatus === 'running' ? 1000 : null);
