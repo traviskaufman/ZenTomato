@@ -1,6 +1,6 @@
 # ZenTomato
 
-<div style="text-align:center;"><img src="./public/logo192.png" alt="logo" style="text-align:center;"></div>
+<p align="center"><img src="./public/logo192.png" alt="logo"></p>
 
 ZenTomato is a minimal, elegant, and frictionless [pomodoro technique](https://en.wikipedia.org/wiki/Pomodoro_Technique) timer designed
 to make you feel good about being productive.
