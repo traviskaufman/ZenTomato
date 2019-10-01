@@ -5,14 +5,16 @@
 ZenTomato is a minimal, elegant, and frictionless [pomodoro technique](https://en.wikipedia.org/wiki/Pomodoro_Technique) timer designed
 to make you feel good about being productive.
 
-I use Pomodoro technique all the time, but most of the ones I found online were either very clunky
+I use the pomodoro technique all the time, but most of the timers I found online were either very clunky
 to use, or just were loaded with things I didn't need. I'm a big fan of [calm technology](https://calmtech.com) and I asked myself:
 
 > What would a pomodoro timer that was designed with calm technology in mind look like?
 
 And thus ZenTomato was born.
 
-An equal goal of mine in building this was to practice my React skills while exercising some excess creative energy. I'm happy to say that for me personally, ZenTomato has now become my de facto pomodoro app of choice...but I guess I'm biased :wink:
+An equal goal I had in building this was to practice my React skills and exercise some excess creative energy. 
+
+I'm happy to say that for me personally, ZenTomato has now become my de facto pomodoro app of choice...but I guess I'm biased.
 
 The code is a complete spaghetti nightmare mess right now :sweat_smile:, but I plan on refactoring it soon and then
 writing about my experience building this!
