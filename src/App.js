@@ -252,10 +252,9 @@ function App() {
       case 'tick':
         let newSecondsRemaining = state.secondsRemaining - 1;
         const isFinished = newSecondsRemaining === 0;
-        const isRestart = newSecondsRemaining < 0;
         let newState = {
           ...state,
-          secondsRemaining: isRestart ? durationForCycle(state.pomodoro.currentCycle) - 1 : newSecondsRemaining,
+          secondsRemaining: newSecondsRemaining,
           clockStatus: isFinished ? 'finished' : state.clockStatus,
         };
         return newState;
