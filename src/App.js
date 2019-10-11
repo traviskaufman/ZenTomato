@@ -187,6 +187,7 @@ let INITIAL_STATE = {
     isRequestingAccess: false,
     // TODO: Find a way to know if someone disables permissions in settings.
     enabled: SUPPORTS_NOTIFS && Boolean(localStorage.getItem('notificationsEnabled')),
+    shownForCycle: false,
   },
   pomodoro: {
     currentCycle: 'pomodoro',
@@ -248,6 +249,11 @@ function App() {
         return {
           ...state,
           clockStatus: 'running',
+          secondsRemaining: durationForCycle(state.pomodoro.currentCycle),
+          notifications: {
+            ...state.notifications,
+            shownForCycle: false,
+          }
         };
       case 'tick':
         let newSecondsRemaining = state.secondsRemaining - 1;
@@ -269,6 +275,10 @@ function App() {
           ...state,
           secondsRemaining: durationForCycle(state.pomodoro.currentCycle),
           clockStatus: 'stopped',
+          notifications: {
+            ...state.notifications,
+            shownForCycle: false,
+          }
         };
       case 'requestNotificationAccess':
         return {
@@ -287,6 +297,14 @@ function App() {
             enabled: action.payload,
           },
         };
+      case 'notificationSeen':
+        return {
+          ...state,
+          notifications: {
+            ...state.notifications,
+            shownForCycle: true,
+          }
+        }
       case 'selectCycle':
         // TODO: If the clock state is finished, immediately start.
         return {
@@ -301,6 +319,10 @@ function App() {
             ...state.theme,
             primary: action.payload === 'pomodoro' ? '#f06b50' : (action.payload === 'shortBreak' ? '#0e4ead' : '#07093d'),
             textOnSecondary: action.payload === 'longBreak' ? '#107fc9' : '#121212',
+          },
+          notifications: {
+            ...state.notifications,
+            shownForCycle: false,
           }
         };
       default:
@@ -368,7 +390,7 @@ function App() {
   }, [state.notifications.isRequestingAccess, state.notifications.enabled])
 
   useEffect(() => {
-    if (state.clockStatus === 'finished' && state.notifications.enabled) {
+    if (state.clockStatus === 'finished' && state.notifications.enabled && !state.notifications.shownForCycle) {
       const finishingPomodoro = state.pomodoro.currentCycle === 'pomodoro';
       const notification = new Notification(`Your ${finishingPomodoro ? 'pomodoro' : 'break'} is over 😌`, {
         icon: `${process.env.PUBLIC_URL}/logo192.png`,
@@ -376,8 +398,9 @@ function App() {
       });
       const timer = setTimeout(() => notification.close(), 5000);
       notification.onclose = () => clearTimeout(timer);
+      dispatch({ type: 'notificationSeen' });
     }
-  }, [state.clockStatus, state.notifications.enabled, state.pomodoro.currentCycle]);
+  }, [state.clockStatus, state.notifications.enabled, state.notifications.shownForCycle, state.pomodoro.currentCycle]);
 
   const playPauseBtn = useRef();
   useEffect(() => {
