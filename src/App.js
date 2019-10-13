@@ -256,11 +256,14 @@ function App() {
           }
         };
       case 'tick':
-        let newSecondsRemaining = state.secondsRemaining - 1;
+        const newSecondsRemaining = state.secondsRemaining - 1;
         const isFinished = newSecondsRemaining === 0;
         let newState = {
           ...state,
-          secondsRemaining: newSecondsRemaining,
+          // HACK: Timer throttling (?) seems to be causing this to go to -1 when the tab is in the background. This
+          // prevents this from happening but an alternative method of having sane timers a la HackTimer should be
+          // used instead
+          secondsRemaining: Math.max(newSecondsRemaining, 0),
           clockStatus: isFinished ? 'finished' : state.clockStatus,
         };
         return newState;
@@ -331,6 +334,7 @@ function App() {
   }, INITIAL_STATE);
 
   useInterval(() => {
+    console.debug('tick');
     dispatch({ type: 'tick' });
   }, state.clockStatus === 'running' ? 1000 : null);
 
