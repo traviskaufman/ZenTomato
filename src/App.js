@@ -1,6 +1,5 @@
 /** @jsx jsx */
 import { useReducer, useEffect, useRef } from 'react';
-import useInterval from 'use-interval';
 import { css, jsx } from '@emotion/core';
 import { ThemeProvider } from 'emotion-theming';
 // TODO: Icon fonts?
@@ -9,6 +8,7 @@ import { ReactComponent as NotificationBell } from './assets/notificationBell.sv
 import { ReactComponent as Play } from './assets/Play.svg';
 import { ReactComponent as Pause } from './assets/Pause.svg';
 import { ReactComponent as Stop } from './assets/Stop.svg';
+import useStableInterval from './hooks/use-stable-interval';
 
 const DEBUG = process.env.NODE_ENV !== 'production' && /* change this */ true;
 const SUPPORTS_NOTIFS = 'Notification' in window;
@@ -246,10 +246,11 @@ function App() {
       // For now these are the same, but semantically they are different,
       // so I will separate them.
       case 'play':
+        const wasPaused = state.clockStatus === 'paused';
         return {
           ...state,
           clockStatus: 'running',
-          secondsRemaining: durationForCycle(state.pomodoro.currentCycle),
+          secondsRemaining: wasPaused ? state.secondsRemaining : durationForCycle(state.pomodoro.currentCycle),
           notifications: {
             ...state.notifications,
             shownForCycle: false,
@@ -257,13 +258,16 @@ function App() {
         };
       case 'tick':
         const newSecondsRemaining = state.secondsRemaining - 1;
+        // For some reason, only when tabs are in the background, setInterval an additional time.
+        // I have no idea why this happens, whether or not it's a React bug, a browser bug, or something else.
+        // ...but I intend to find out why.
+        if (newSecondsRemaining < 0) {
+          return state;
+        }
         const isFinished = newSecondsRemaining === 0;
         let newState = {
           ...state,
-          // HACK: Timer throttling (?) seems to be causing this to go to -1 when the tab is in the background. This
-          // prevents this from happening but an alternative method of having sane timers a la HackTimer should be
-          // used instead
-          secondsRemaining: Math.max(newSecondsRemaining, 0),
+          secondsRemaining: newSecondsRemaining,
           clockStatus: isFinished ? 'finished' : state.clockStatus,
         };
         return newState;
@@ -333,8 +337,7 @@ function App() {
     }
   }, INITIAL_STATE);
 
-  useInterval(() => {
-    console.debug('tick');
+  useStableInterval(() => {
     dispatch({ type: 'tick' });
   }, state.clockStatus === 'running' ? 1000 : null);
 
