@@ -414,7 +414,7 @@ function App() {
     if (playPauseBtn.current) {
       playPauseBtn.current.focus();
     }
-  }, [state.pomodoro.currentCycle]);
+  }, []);
 
   useEffect(() => {
     let root = document.querySelector(':root');
