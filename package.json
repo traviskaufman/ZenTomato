@@ -15,8 +15,8 @@
     "build": "react-scripts build",
     "test": "yarn run build && yarn run test:e2e",
     "test:e2e": "export ZT_E2E_TEST_PORT=$(get-port); export ZT_E2E_TEST_URL=http://localhost:$ZT_E2E_TEST_PORT; start-server-and-test test:e2e:start-server $ZT_E2E_TEST_URL test:e2e:run-tests",
-    "test:e2e:start-server": "http-server -s -p $ZT_E2E_TEST_PORT",
-    "test:e2e:run-tests": "jest e2e-tests --config=jest.config.e2e.js",
+    "test:e2e:start-server": "http-server -s -p $ZT_E2E_TEST_PORT build",
+    "test:e2e:run-tests": "jest e2e-tests --config=jest.config.e2e.js -i",
     "eject": "react-scripts eject",
     "deploy": "yarn build && firebase deploy"
   },

@@ -486,11 +486,22 @@ function App() {
           </section>
           <time css={styles.time} dateTime={formattedSeconds}>{formattedSeconds}</time>
           <div css={styles.controls}>
-            {/* TODO: Accessibility */}
-            <button css={styles.control} onClick={isRunning ? handlePause : handlePlay} ref={playPauseBtn}>
+            <button
+              aria-label={isRunning ? "Pause" : "Start"}
+              css={styles.control}
+              onClick={isRunning ? handlePause : handlePlay}
+              ref={playPauseBtn}>
+
               {isRunning ? <Pause /> : <Play />}
             </button>
-            <button css={styles.control} disabled={state.clockStatus === 'stopped' || state.clockStatus === 'finished'} onClick={handleStop}><Stop /></button>
+            <button
+              aria-label="Stop"
+              css={styles.control}
+              disabled={state.clockStatus === 'stopped' || state.clockStatus === 'finished'}
+              onClick={handleStop}>
+
+              <Stop />
+            </button>
           </div>
         </main>
         <footer css={styles.footer}><p>A project by <a href="https://traviskaufman.io" target="_blank" rel="noopener noreferrer">Travis Kaufman</a></p></footer>
