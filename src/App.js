@@ -2,13 +2,12 @@
 import { useReducer, useEffect, useRef } from 'react';
 import { css, jsx } from '@emotion/core';
 import { ThemeProvider } from 'emotion-theming';
-// TODO: Icon fonts?
-import logo from './assets/logo.svg';
 import { ReactComponent as NotificationBell } from './assets/notificationBell.svg';
 import { ReactComponent as Play } from './assets/Play.svg';
 import { ReactComponent as Pause } from './assets/Pause.svg';
 import { ReactComponent as Stop } from './assets/Stop.svg';
 import useStableInterval from './hooks/use-stable-interval';
+import LogoImage from './LogoImage';
 
 const DEBUG = process.env.NODE_ENV !== 'production' && /* change this */ true;
 const SUPPORTS_NOTIFS = 'Notification' in window;
@@ -469,8 +468,7 @@ function App() {
     <ThemeProvider theme={state.theme}>
       <div css={styles.appContainer}>
         <nav css={styles.topMenu}>
-          {/* TODO: Hidden text in link */}
-          <img css={css`margin-bottom: 20px; opacity: 0.7;`} src={logo} alt="Zen Tomato – A project by Travis Kaufman" width="96" height="96" />
+          <LogoImage />
           <button css={[styles.topMenuItem]}
             aria-label={`${state.notifications.enabled ? 'Disable' : 'Enable'} notifications`}
             onClick={handleNotifBellClick}
