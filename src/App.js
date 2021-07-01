@@ -8,9 +8,11 @@ import { ReactComponent as Pause } from "./assets/Pause.svg";
 import { ReactComponent as Stop } from "./assets/Stop.svg";
 import useStableInterval from "./hooks/use-stable-interval";
 import LogoImageSvelte from "./LogoImage.svelte";
+import FooterSvelte from "./Footer.svelte";
 import svelteToReact from "svelte-adapter/react";
 
 const LogoImage = svelteToReact(LogoImageSvelte);
+const Footer = svelteToReact(FooterSvelte);
 
 const DEBUG = process.env.NODE_ENV !== "production" && /* change this */ true;
 const SUPPORTS_NOTIFS = "Notification" in window;
@@ -157,30 +159,6 @@ const styles = {
           `
         : ""}
     `,
-  footer: (theme) => css`
-    font-size: 0.75rem;
-    opacity: 0.7;
-    text-align: center;
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 20px;
-
-    @media (max-height: 500px) {
-      display: none;
-    }
-
-    a {
-      color: ${theme.textOnPrimary};
-      text-decoration: none;
-
-      &:hover,
-      &:active,
-      &:focus {
-        text-decoration: underline;
-      }
-    }
-  `,
 };
 
 let originalTitle = document.title;
@@ -460,7 +438,10 @@ function App() {
     let root = document.querySelector(":root");
     root.style.setProperty("--theme-primary", state.theme.primary);
     root.style.setProperty("--theme-secondary", state.theme.secondary);
-    // Theme-text-on-primary is computed
+    root.style.setProperty(
+      "--theme-text-on-primary",
+      state.theme.textOnPrimary
+    );
     root.style.setProperty(
       "--theme-text-on-secondary",
       state.theme.textOnSecondary
@@ -577,18 +558,7 @@ function App() {
             </button>
           </div>
         </main>
-        <footer css={styles.footer}>
-          <p>
-            A project by{" "}
-            <a
-              href="https://traviskaufman.io"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Travis Kaufman
-            </a>
-          </p>
-        </footer>
+        <Footer />
       </div>
     </ThemeProvider>
   );

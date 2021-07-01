@@ -325,9 +325,7 @@ module.exports = function (webpackEnv) {
           test: /\.svelte$/,
           use: {
             loader: "svelte-loader",
-            options: {
-              emitCss: true,
-            },
+            options: require("../svelte.config"),
           },
         },
         // First, run the linter.
