@@ -294,6 +294,7 @@ module.exports = function (webpackEnv) {
         // Support React Native Web
         // https://www.smashingmagazine.com/2016/08/a-glimpse-into-the-future-with-react-native-for-web/
         "react-native": "react-native-web",
+        svelte: path.resolve("node_modules", "svelte"),
       },
       plugins: [
         // Adds support for installing with Plug'n'Play, leading to faster installs and adding
@@ -306,6 +307,7 @@ module.exports = function (webpackEnv) {
         // Make sure your source files are compiled, as they will not be processed in any way.
         new ModuleScopePlugin(paths.appSrc, [paths.appPackageJson]),
       ],
+      mainFields: ["svelte", "browser", "module", "main"],
     },
     resolveLoader: {
       plugins: [
@@ -319,7 +321,15 @@ module.exports = function (webpackEnv) {
       rules: [
         // Disable require.ensure as it's not a standard language feature.
         { parser: { requireEnsure: false } },
-
+        {
+          test: /\.svelte$/,
+          use: {
+            loader: "svelte-loader",
+            options: {
+              emitCss: true,
+            },
+          },
+        },
         // First, run the linter.
         // It's important to do this before Babel processes the JS.
         {
@@ -489,7 +499,12 @@ module.exports = function (webpackEnv) {
               // its runtime that would otherwise be processed through "file" loader.
               // Also exclude `html` and `json` extensions so they get processed
               // by webpacks internal loaders.
-              exclude: [/\.(js|mjs|jsx|ts|tsx)$/, /\.html$/, /\.json$/],
+              exclude: [
+                /\.(js|mjs|jsx|ts|tsx)$/,
+                /\.html$/,
+                /\.json$/,
+                /\.svelte$/,
+              ],
               options: {
                 name: "static/media/[name].[hash:8].[ext]",
               },

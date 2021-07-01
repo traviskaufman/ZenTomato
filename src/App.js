@@ -7,7 +7,10 @@ import { ReactComponent as Play } from "./assets/Play.svg";
 import { ReactComponent as Pause } from "./assets/Pause.svg";
 import { ReactComponent as Stop } from "./assets/Stop.svg";
 import useStableInterval from "./hooks/use-stable-interval";
-import LogoImage from "./LogoImage";
+import LogoImageSvelte from "./LogoImage.svelte";
+import svelteToReact from "svelte-adapter/react";
+
+const LogoImage = svelteToReact(LogoImageSvelte);
 
 const DEBUG = process.env.NODE_ENV !== "production" && /* change this */ true;
 const SUPPORTS_NOTIFS = "Notification" in window;
