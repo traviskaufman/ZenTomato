@@ -9,10 +9,12 @@ import { ReactComponent as Stop } from "./assets/Stop.svg";
 import useStableInterval from "./hooks/use-stable-interval";
 import LogoImageSvelte from "./LogoImage.svelte";
 import FooterSvelte from "./Footer.svelte";
+import TimeDisplaySvelte from "./TimeDisplay.svelte";
 import svelteToReact from "svelte-adapter/react";
 
 const LogoImage = svelteToReact(LogoImageSvelte);
 const Footer = svelteToReact(FooterSvelte);
+const TimeDisplay = svelteToReact(TimeDisplaySvelte);
 
 const DEBUG = process.env.NODE_ENV !== "production" && /* change this */ true;
 const SUPPORTS_NOTIFS = "Notification" in window;
@@ -65,18 +67,6 @@ const styles = {
         margin-right: 0;
       }
     }
-  `,
-  time: css`
-    /* TODO: Make this larger and scale with the size of the screen */
-    font-size: 12rem;
-    /* TODO: Refactor into smallScreen tagged template literal? */
-    @media (max-width: 720px) {
-      font-size: 6rem;
-    }
-    font-weight: 300;
-    line-height: 1;
-    letter-spacing: -0.015rem;
-    margin: 20px auto;
   `,
   appContainer: (theme) => css`
     width: 100vw;
@@ -533,9 +523,7 @@ function App() {
               Long break
             </button>
           </section>
-          <time css={styles.time} dateTime={formattedSeconds}>
-            {formattedSeconds}
-          </time>
+          <TimeDisplay formattedSeconds={formattedSeconds} />
           <div css={styles.controls}>
             <button
               aria-label={isRunning ? "Pause" : "Start"}
