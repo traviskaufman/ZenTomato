@@ -1,17 +1,16 @@
 /** @jsx jsx */
-import { useReducer, useEffect, useRef } from 'react';
-import { css, jsx } from '@emotion/core';
-import { ThemeProvider } from 'emotion-theming';
-// TODO: Icon fonts?
-import logo from './assets/logo.svg';
-import { ReactComponent as NotificationBell } from './assets/notificationBell.svg';
-import { ReactComponent as Play } from './assets/Play.svg';
-import { ReactComponent as Pause } from './assets/Pause.svg';
-import { ReactComponent as Stop } from './assets/Stop.svg';
-import useStableInterval from './hooks/use-stable-interval';
+import { useReducer, useEffect, useRef } from "react";
+import { css, jsx } from "@emotion/core";
+import { ThemeProvider } from "emotion-theming";
+import { ReactComponent as NotificationBell } from "./assets/notificationBell.svg";
+import { ReactComponent as Play } from "./assets/Play.svg";
+import { ReactComponent as Pause } from "./assets/Pause.svg";
+import { ReactComponent as Stop } from "./assets/Stop.svg";
+import useStableInterval from "./hooks/use-stable-interval";
+import LogoImage from "./LogoImage";
 
-const DEBUG = process.env.NODE_ENV !== 'production' && /* change this */ true;
-const SUPPORTS_NOTIFS = 'Notification' in window;
+const DEBUG = process.env.NODE_ENV !== "production" && /* change this */ true;
+const SUPPORTS_NOTIFS = "Notification" in window;
 
 const cssHelpers = {
   btnReset: css`
@@ -71,10 +70,10 @@ const styles = {
     }
     font-weight: 300;
     line-height: 1;
-    letter-spacing: -.015rem;
+    letter-spacing: -0.015rem;
     margin: 20px auto;
   `,
-  appContainer: theme => css`
+  appContainer: (theme) => css`
     width: 100vw;
     height: 100vh;
     display: flex;
@@ -110,7 +109,7 @@ const styles = {
       pointer-events: none;
     }
   `,
-  segmentBar: theme => css`
+  segmentBar: (theme) => css`
     box-sizing: border-box;
     border-radius: 8px;
     width: 100%;
@@ -122,36 +121,40 @@ const styles = {
     z-index: 1;
     overflow: hidden;
   `,
-  segmentControl: isSelected => theme => css`
-    ${cssHelpers.btnReset}
-    text-align: center;
-    background-color: rgba(255, 255, 255, ${isSelected ? 1 : 0});
-    color: ${isSelected ? theme.textOnSecondary : theme.textOnPrimary};
-    border-right: 1px solid ${theme.textOnPrimary};
-    display: block;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-    font-size: 1rem;
-    line-height: 1;
-    letter-spacing: 0.5;
-    transition: color 125ms ease, background-color 125ms ease;
+  segmentControl: (isSelected) => (theme) =>
+    css`
+      ${cssHelpers.btnReset}
+      text-align: center;
+      background-color: rgba(255, 255, 255, ${isSelected ? 1 : 0});
+      color: ${isSelected ? theme.textOnSecondary : theme.textOnPrimary};
+      border-right: 1px solid ${theme.textOnPrimary};
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      letter-spacing: 0.5;
+      transition: color 125ms ease, background-color 125ms ease;
 
-    &:last-child {
-      border-right: none;
-    }
-
-    &:hover, &.focus-visible {
-      background-color: rgba(255, 255, 255, ${isSelected ? 1 : 0.4});
-    }
-    ${isSelected ? css`
-      &.focus-visible {
-        background-color: ${theme.textOnSecondary};
-        color: ${theme.textOnPrimary};
+      &:last-child {
+        border-right: none;
       }
-    ` : ''}
-  `,
-  footer: theme => css`
+
+      &:hover,
+      &.focus-visible {
+        background-color: rgba(255, 255, 255, ${isSelected ? 1 : 0.4});
+      }
+      ${isSelected
+        ? css`
+            &.focus-visible {
+              background-color: ${theme.textOnSecondary};
+              color: ${theme.textOnPrimary};
+            }
+          `
+        : ""}
+    `,
+  footer: (theme) => css`
     font-size: 0.75rem;
     opacity: 0.7;
     text-align: center;
@@ -174,64 +177,69 @@ const styles = {
         text-decoration: underline;
       }
     }
-  `
-}
+  `,
+};
 
 let originalTitle = document.title;
 let INITIAL_STATE = {
   // TODO: Refactor secondsRemaining and clockStatus into `clock` variable
-  secondsRemaining: durationForCycle('pomodoro'),
-  clockStatus: 'stopped',
+  secondsRemaining: durationForCycle("pomodoro"),
+  clockStatus: "stopped",
   // TODO: Progressively degrade if not active.
   notifications: {
     isRequestingAccess: false,
     // TODO: Find a way to know if someone disables permissions in settings.
-    enabled: SUPPORTS_NOTIFS && Boolean(localStorage.getItem('notificationsEnabled')),
+    enabled:
+      SUPPORTS_NOTIFS && Boolean(localStorage.getItem("notificationsEnabled")),
     shownForCycle: false,
   },
   pomodoro: {
-    currentCycle: 'pomodoro',
+    currentCycle: "pomodoro",
   },
   theme: {
-    primary: '#f06b50',
-    secondary: '#fff',
-    textOnPrimary: '#fff',
-    textOnSecondary: '#121212',
-  }
-}
+    primary: "#f06b50",
+    secondary: "#fff",
+    textOnPrimary: "#fff",
+    textOnSecondary: "#121212",
+  },
+};
 
 function durationForCycle(cycle) {
   switch (cycle) {
-    case 'pomodoro':
+    case "pomodoro":
       return DEBUG ? 3 : 25 * 60;
-    case 'shortBreak':
+    case "shortBreak":
       return DEBUG ? 3 : 5 * 60;
-    case 'longBreak':
+    case "longBreak":
       return DEBUG ? 3 : 15 * 60;
     default:
       throw new Error(`Unexpected cycle ${cycle}`);
   }
 }
 
-const RUN_KEY = 'runningUnloadInfo'
+const RUN_KEY = "runningUnloadInfo";
 function catchUnload(state) {
-  if (state.clockStatus === 'running') {
-    localStorage.setItem(RUN_KEY, JSON.stringify({
-      timeUnloaded: Date.now(),
-      state
-    }));
+  if (state.clockStatus === "running") {
+    localStorage.setItem(
+      RUN_KEY,
+      JSON.stringify({
+        timeUnloaded: Date.now(),
+        state,
+      })
+    );
   }
 }
 
 if (RUN_KEY in localStorage) {
   try {
     const unloadInfo = JSON.parse(localStorage.getItem(RUN_KEY));
-    const unloadHappenedLessThan10sAgo = Date.now() - unloadInfo.timeUnloaded < 10000;
+    const unloadHappenedLessThan10sAgo =
+      Date.now() - unloadInfo.timeUnloaded < 10000;
     if (unloadHappenedLessThan10sAgo) {
       INITIAL_STATE = unloadInfo.state;
     }
   } catch (err) {
-    console.warn('Could not restore state from previous session:', err);
+    console.warn("Could not restore state from previous session:", err);
   } finally {
     localStorage.removeItem(RUN_KEY);
   }
@@ -245,18 +253,20 @@ function App() {
     switch (action.type) {
       // For now these are the same, but semantically they are different,
       // so I will separate them.
-      case 'play':
-        const wasPaused = state.clockStatus === 'paused';
+      case "play":
+        const wasPaused = state.clockStatus === "paused";
         return {
           ...state,
-          clockStatus: 'running',
-          secondsRemaining: wasPaused ? state.secondsRemaining : durationForCycle(state.pomodoro.currentCycle),
+          clockStatus: "running",
+          secondsRemaining: wasPaused
+            ? state.secondsRemaining
+            : durationForCycle(state.pomodoro.currentCycle),
           notifications: {
             ...state.notifications,
             shownForCycle: false,
-          }
+          },
         };
-      case 'tick':
+      case "tick":
         const newSecondsRemaining = state.secondsRemaining - 1;
         // For some reason, only when tabs are in the background, setInterval an additional time.
         // I have no idea why this happens, whether or not it's a React bug, a browser bug, or something else.
@@ -268,34 +278,34 @@ function App() {
         let newState = {
           ...state,
           secondsRemaining: newSecondsRemaining,
-          clockStatus: isFinished ? 'finished' : state.clockStatus,
+          clockStatus: isFinished ? "finished" : state.clockStatus,
         };
         return newState;
-      case 'pause':
+      case "pause":
         return {
           ...state,
-          clockStatus: 'paused'
+          clockStatus: "paused",
         };
-      case 'stop':
-        if (state.clockStatus === 'finished') return state;
+      case "stop":
+        if (state.clockStatus === "finished") return state;
         return {
           ...state,
           secondsRemaining: durationForCycle(state.pomodoro.currentCycle),
-          clockStatus: 'stopped',
+          clockStatus: "stopped",
           notifications: {
             ...state.notifications,
             shownForCycle: false,
-          }
+          },
         };
-      case 'requestNotificationAccess':
+      case "requestNotificationAccess":
         return {
           ...state,
           notifications: {
             ...state.notifications,
             isRequestingAccess: true,
-          }
+          },
         };
-      case 'setNotificationsEnabled':
+      case "setNotificationsEnabled":
         return {
           ...state,
           notifications: {
@@ -304,42 +314,51 @@ function App() {
             enabled: action.payload,
           },
         };
-      case 'notificationSeen':
+      case "notificationSeen":
         return {
           ...state,
           notifications: {
             ...state.notifications,
             shownForCycle: true,
-          }
-        }
-      case 'selectCycle':
+          },
+        };
+      case "selectCycle":
         // TODO: If the clock state is finished, immediately start.
         return {
           ...state,
           secondsRemaining: durationForCycle(action.payload),
-          clockStatus: 'stopped',
+          clockStatus: "stopped",
           pomodoro: {
             ...state.pomodoro,
             currentCycle: action.payload,
           },
           theme: {
             ...state.theme,
-            primary: action.payload === 'pomodoro' ? '#f06b50' : (action.payload === 'shortBreak' ? '#0e4ead' : '#07093d'),
-            textOnSecondary: action.payload === 'longBreak' ? '#107fc9' : '#121212',
+            primary:
+              action.payload === "pomodoro"
+                ? "#f06b50"
+                : action.payload === "shortBreak"
+                ? "#0e4ead"
+                : "#07093d",
+            textOnSecondary:
+              action.payload === "longBreak" ? "#107fc9" : "#121212",
           },
           notifications: {
             ...state.notifications,
             shownForCycle: false,
-          }
+          },
         };
       default:
         throw new Error(`Unrecognized action ${action.type}`);
     }
   }, INITIAL_STATE);
 
-  useStableInterval(() => {
-    dispatch({ type: 'tick' });
-  }, state.clockStatus === 'running' ? 1000 : null);
+  useStableInterval(
+    () => {
+      dispatch({ type: "tick" });
+    },
+    state.clockStatus === "running" ? 1000 : null
+  );
 
   // TODO: Def a selector
   const formattedSeconds = (() => {
@@ -352,62 +371,80 @@ function App() {
       seconds = `0${seconds}`;
     }
     return `${minutes}:${seconds}`;
-  })()
+  })();
 
   useEffect(() => {
     const catchUnloadForState = () => catchUnload(state);
-    window.addEventListener('unload', catchUnloadForState);
-    return () => window.removeEventListener('unload', catchUnloadForState);
+    window.addEventListener("unload", catchUnloadForState);
+    return () => window.removeEventListener("unload", catchUnloadForState);
   }, [state]);
 
   useEffect(() => {
     switch (state.clockStatus) {
-      case 'running':
+      case "running":
         document.title = `(${formattedSeconds}) ZenTomato`;
         break;
-      case 'paused':
-        document.title = `⏸(${formattedSeconds}) ZenTomato`
+      case "paused":
+        document.title = `⏸(${formattedSeconds}) ZenTomato`;
         break;
-      case 'finished':
-        document.title = `🏁✅ ZenTomato`
+      case "finished":
+        document.title = `🏁✅ ZenTomato`;
         break;
       default:
         document.title = originalTitle;
         break;
     }
-  }, [formattedSeconds, state.clockStatus])
+  }, [formattedSeconds, state.clockStatus]);
 
   useEffect(() => {
     (async () => {
       if (state.notifications.isRequestingAccess) {
         // TODO: Permission requesting should go into a thunk.
-        const permission = await Notification.requestPermission()
-        if (permission === 'denied') {
-          alert('Notifications have been disabled for ZenTomato. You can re-enable them in your browser\'s settings.');
+        const permission = await Notification.requestPermission();
+        if (permission === "denied") {
+          alert(
+            "Notifications have been disabled for ZenTomato. You can re-enable them in your browser's settings."
+          );
         }
-        setNotificationsEnabled(permission === 'granted');
-        return
+        setNotificationsEnabled(permission === "granted");
+        return;
       }
       if (state.notifications.enabled) {
-        localStorage.setItem('notificationsEnabled', 'you betcha!');
+        localStorage.setItem("notificationsEnabled", "you betcha!");
       } else {
-        localStorage.removeItem('notificationsEnabled');
+        localStorage.removeItem("notificationsEnabled");
       }
-    })()
-  }, [state.notifications.isRequestingAccess, state.notifications.enabled])
+    })();
+  }, [state.notifications.isRequestingAccess, state.notifications.enabled]);
 
   useEffect(() => {
-    if (state.clockStatus === 'finished' && state.notifications.enabled && !state.notifications.shownForCycle) {
-      const finishingPomodoro = state.pomodoro.currentCycle === 'pomodoro';
-      const notification = new Notification(`Your ${finishingPomodoro ? 'pomodoro' : 'break'} is over 😌`, {
-        icon: `${process.env.PUBLIC_URL}/logo192.png`,
-        body: `${finishingPomodoro ? 'Take a short break' : 'Begin your next pomodoro'} when ready`,
-      });
+    if (
+      state.clockStatus === "finished" &&
+      state.notifications.enabled &&
+      !state.notifications.shownForCycle
+    ) {
+      const finishingPomodoro = state.pomodoro.currentCycle === "pomodoro";
+      const notification = new Notification(
+        `Your ${finishingPomodoro ? "pomodoro" : "break"} is over 😌`,
+        {
+          icon: `${process.env.PUBLIC_URL}/logo192.png`,
+          body: `${
+            finishingPomodoro
+              ? "Take a short break"
+              : "Begin your next pomodoro"
+          } when ready`,
+        }
+      );
       const timer = setTimeout(() => notification.close(), 5000);
       notification.onclose = () => clearTimeout(timer);
-      dispatch({ type: 'notificationSeen' });
+      dispatch({ type: "notificationSeen" });
     }
-  }, [state.clockStatus, state.notifications.enabled, state.notifications.shownForCycle, state.pomodoro.currentCycle]);
+  }, [
+    state.clockStatus,
+    state.notifications.enabled,
+    state.notifications.shownForCycle,
+    state.pomodoro.currentCycle,
+  ]);
 
   const playPauseBtn = useRef();
   useEffect(() => {
@@ -417,48 +454,53 @@ function App() {
   }, []);
 
   useEffect(() => {
-    let root = document.querySelector(':root');
-    root.style.setProperty('--theme-primary', state.theme.primary);
-    root.style.setProperty('--theme-secondary', state.theme.secondary);
+    let root = document.querySelector(":root");
+    root.style.setProperty("--theme-primary", state.theme.primary);
+    root.style.setProperty("--theme-secondary", state.theme.secondary);
     // Theme-text-on-primary is computed
-    root.style.setProperty('--theme-text-on-secondary', state.theme.textOnSecondary);
+    root.style.setProperty(
+      "--theme-text-on-secondary",
+      state.theme.textOnSecondary
+    );
   }, [state.theme]);
 
   const handlePlay = () => {
-    dispatch({ type: 'play' });
+    dispatch({ type: "play" });
     // Tick right away to let users know somethings happening
-    dispatch({ type: 'tick' });
+    dispatch({ type: "tick" });
   };
 
-  const handlePause = () => dispatch({ type: 'pause' });
+  const handlePause = () => dispatch({ type: "pause" });
 
-  const handleStop = () => dispatch({ type: 'stop' });
+  const handleStop = () => dispatch({ type: "stop" });
 
-  const requestNotificationAccess = () => dispatch({ type: 'requestNotificationAccess' });
+  const requestNotificationAccess = () =>
+    dispatch({ type: "requestNotificationAccess" });
 
-  const setNotificationsEnabled = (enabled) => dispatch({ type: 'setNotificationsEnabled', payload: enabled });
+  const setNotificationsEnabled = (enabled) =>
+    dispatch({ type: "setNotificationsEnabled", payload: enabled });
 
   const handleNotifBellClick = () => {
-    if (Notification.permission !== 'granted') {
+    if (Notification.permission !== "granted") {
       return requestNotificationAccess();
     }
     setNotificationsEnabled(!state.notifications.enabled);
-  }
+  };
 
   const selectCycle = (cycle) => {
-    dispatch({ type: 'selectCycle', payload: cycle });
-    if (state.clockStatus === 'finished') {
-      dispatch({ type: 'play' });
-      dispatch({ type: 'tick' });
+    dispatch({ type: "selectCycle", payload: cycle });
+    if (state.clockStatus === "finished") {
+      dispatch({ type: "play" });
+      dispatch({ type: "tick" });
     }
   };
 
-  const isRunning = state.clockStatus === 'running';
+  const isRunning = state.clockStatus === "running";
 
-  const notificationBellStyle = theme => css`
+  const notificationBellStyle = (theme) => css`
     #bell {
       transition: fill 125ms ease;
-      fill: ${state.notifications.enabled ? theme.textOnPrimary : 'none'};
+      fill: ${state.notifications.enabled ? theme.textOnPrimary : "none"};
     }
     margin-right: 8px;
   `;
@@ -469,42 +511,81 @@ function App() {
     <ThemeProvider theme={state.theme}>
       <div css={styles.appContainer}>
         <nav css={styles.topMenu}>
-          {/* TODO: Hidden text in link */}
-          <img css={css`margin-bottom: 20px; opacity: 0.7;`} src={logo} alt="Zen Tomato – A project by Travis Kaufman" width="96" height="96" />
-          <button css={[styles.topMenuItem]}
-            aria-label={`${state.notifications.enabled ? 'Disable' : 'Enable'} notifications`}
+          <LogoImage />
+          <button
+            css={[styles.topMenuItem]}
+            aria-label={`${
+              state.notifications.enabled ? "Disable" : "Enable"
+            } notifications`}
             onClick={handleNotifBellClick}
-            hidden={!SUPPORTS_NOTIFS}>
-            <NotificationBell css={notificationBellStyle} title={`${state.notifications.enabled ? 'Disable' : 'Enable'} notifications`} />
+            hidden={!SUPPORTS_NOTIFS}
+          >
+            <NotificationBell
+              css={notificationBellStyle}
+              title={`${
+                state.notifications.enabled ? "Disable" : "Enable"
+              } notifications`}
+            />
           </button>
         </nav>
         <main css={styles.appUI}>
           <section css={styles.segmentBar}>
-            <button css={styles.segmentControl(currentCycle === 'pomodoro')} onClick={() => selectCycle('pomodoro')}>Pomodoro</button>
-            <button css={styles.segmentControl(currentCycle === 'shortBreak')} onClick={() => selectCycle('shortBreak')}>Short break</button>
-            <button css={styles.segmentControl(currentCycle === 'longBreak')} onClick={() => selectCycle('longBreak')}>Long break</button>
+            <button
+              css={styles.segmentControl(currentCycle === "pomodoro")}
+              onClick={() => selectCycle("pomodoro")}
+            >
+              Pomodoro
+            </button>
+            <button
+              css={styles.segmentControl(currentCycle === "shortBreak")}
+              onClick={() => selectCycle("shortBreak")}
+            >
+              Short break
+            </button>
+            <button
+              css={styles.segmentControl(currentCycle === "longBreak")}
+              onClick={() => selectCycle("longBreak")}
+            >
+              Long break
+            </button>
           </section>
-          <time css={styles.time} dateTime={formattedSeconds}>{formattedSeconds}</time>
+          <time css={styles.time} dateTime={formattedSeconds}>
+            {formattedSeconds}
+          </time>
           <div css={styles.controls}>
             <button
               aria-label={isRunning ? "Pause" : "Start"}
               css={styles.control}
               onClick={isRunning ? handlePause : handlePlay}
-              ref={playPauseBtn}>
-
+              ref={playPauseBtn}
+            >
               {isRunning ? <Pause /> : <Play />}
             </button>
             <button
               aria-label="Stop"
               css={styles.control}
-              disabled={state.clockStatus === 'stopped' || state.clockStatus === 'finished'}
-              onClick={handleStop}>
-
+              disabled={
+                state.clockStatus === "stopped" ||
+                state.clockStatus === "finished"
+              }
+              onClick={handleStop}
+            >
               <Stop />
             </button>
           </div>
         </main>
-        <footer css={styles.footer}><p>A project by <a href="https://traviskaufman.io" target="_blank" rel="noopener noreferrer">Travis Kaufman</a></p></footer>
+        <footer css={styles.footer}>
+          <p>
+            A project by{" "}
+            <a
+              href="https://traviskaufman.io"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Travis Kaufman
+            </a>
+          </p>
+        </footer>
       </div>
     </ThemeProvider>
   );
