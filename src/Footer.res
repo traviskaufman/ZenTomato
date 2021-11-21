@@ -25,7 +25,7 @@ module Styles = {
 
 @react.component
 let default = () => {
-  <footer className={Styles.footer}>
+  <footer className=Styles.footer>
     <p>
       {React.string("A project by ")}
       <a href="https://traviskaufman.io" target="_blank" rel="noopener noreferrer">
