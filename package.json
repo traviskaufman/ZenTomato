@@ -4,7 +4,9 @@
   "private": true,
   "dependencies": {
     "@emotion/core": "^10.0.17",
+    "@emotion/css": "^10.0.27",
     "@rescript/react": "^0.10.3",
+    "bs-css-emotion": "^4.0.1",
     "emotion-theming": "^10.0.19",
     "focus-visible": "^5.0.2",
     "react": "^16.9.0",
