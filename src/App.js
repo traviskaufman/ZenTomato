@@ -10,6 +10,7 @@ import useStableInterval from "./hooks/use-stable-interval";
 import LogoImage from "./LogoImage";
 import Footer from "./Footer";
 import TimeDisplay from "./TimeDisplay";
+import AppContainer from "./AppContainer";
 
 const DEBUG = process.env.NODE_ENV !== "production" && /* change this */ true;
 const SUPPORTS_NOTIFS = "Notification" in window;
@@ -62,15 +63,6 @@ const styles = {
         margin-right: 0;
       }
     }
-  `,
-  appContainer: (theme) => css`
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    color: ${theme.textOnPrimary};
   `,
   appUI: css`
     display: flex;
@@ -502,7 +494,7 @@ function App() {
 
   return (
     <ThemeProvider theme={state.theme}>
-      <div css={styles.appContainer}>
+      <AppContainer>
         <nav css={styles.topMenu}>
           <LogoImage />
           <button
@@ -566,7 +558,7 @@ function App() {
           </div>
         </main>
         <Footer />
-      </div>
+      </AppContainer>
     </ThemeProvider>
   );
 }
