@@ -14,6 +14,7 @@ import NotificationSettings, {
   Model as NotificationSettingsModel,
 } from "./NotificationSettings";
 import Nav from "./Nav";
+import AppUI from "./AppUI";
 
 const DEBUG = process.env.NODE_ENV !== "production" && /* change this */ true;
 const SUPPORTS_NOTIFS = "Notification" in window;
@@ -36,12 +37,6 @@ const cssHelpers = {
 };
 
 const styles = {
-  appUI: css`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-  `,
   controls: css`
     display: flex;
     align-items: center;
@@ -108,30 +103,6 @@ const styles = {
           `
         : ""}
     `,
-  footer: (theme) => css`
-    font-size: 0.75rem;
-    opacity: 0.7;
-    text-align: center;
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 20px;
-
-    @media (max-height: 500px) {
-      display: none;
-    }
-
-    a {
-      color: ${theme.textOnPrimary};
-      text-decoration: none;
-
-      &:hover,
-      &:active,
-      &:focus {
-        text-decoration: underline;
-      }
-    }
-  `,
 };
 
 let originalTitle = document.title;
@@ -413,7 +384,7 @@ function App() {
           <LogoImage />
           <NotificationSettings />
         </Nav>
-        <main css={styles.appUI}>
+        <AppUI>
           <section css={styles.segmentBar}>
             <button
               css={styles.segmentControl(currentCycle === "pomodoro")}
@@ -456,7 +427,7 @@ function App() {
               <Stop />
             </button>
           </div>
-        </main>
+        </AppUI>
         <Footer />
       </AppContainer>
     </ThemeProvider>
