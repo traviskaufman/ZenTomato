@@ -13,6 +13,7 @@ import AppContainer from "./AppContainer";
 import NotificationSettings, {
   Model as NotificationSettingsModel,
 } from "./NotificationSettings";
+import Nav from "./Nav";
 
 const DEBUG = process.env.NODE_ENV !== "production" && /* change this */ true;
 const SUPPORTS_NOTIFS = "Notification" in window;
@@ -35,18 +36,6 @@ const cssHelpers = {
 };
 
 const styles = {
-  topMenu: css`
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    display: flex;
-    flex-direction: column;
-    @media (max-width: 600px) {
-      flex-direction: row;
-    }
-    align-items: center;
-    justify-content: center;
-  `,
   appUI: css`
     display: flex;
     align-items: center;
@@ -420,10 +409,10 @@ function App() {
   return (
     <ThemeProvider theme={state.theme}>
       <AppContainer>
-        <nav css={styles.topMenu}>
+        <Nav>
           <LogoImage />
           <NotificationSettings />
-        </nav>
+        </Nav>
         <main css={styles.appUI}>
           <section css={styles.segmentBar}>
             <button
