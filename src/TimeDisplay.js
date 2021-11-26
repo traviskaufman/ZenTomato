@@ -5,7 +5,7 @@ import * as React from "react";
 
 var time = CssJs.style([
       CssJs.fontSize(CssJs.rem(12)),
-      CssJs.media("max-width: 720px", [CssJs.fontSize(CssJs.rem(6))]),
+      CssJs.media("(max-width: 720px)", [CssJs.fontSize(CssJs.rem(6))]),
       CssJs.fontWeight({
             NAME: "num",
             VAL: 300
@@ -14,11 +14,8 @@ var time = CssJs.style([
             NAME: "abs",
             VAL: 1
           }),
-      CssJs.letterSpacing({
-            NAME: "rem",
-            VAL: -0.015
-          }),
-      CssJs.margin2(CssJs.px(20), "auto")
+      CssJs.letterSpacing(CssJs.rem(-0.015)),
+      CssJs.margin2(CssJs.px(20), CssJs.auto)
     ]);
 
 var Styles = {

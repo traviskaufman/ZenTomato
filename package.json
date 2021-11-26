@@ -6,12 +6,17 @@
     "@emotion/core": "^10.0.17",
     "@emotion/css": "^10.0.27",
     "@rescript/react": "^0.10.3",
+    "@ryyppy/rescript-promise": "^2.1.0",
     "bs-css-emotion": "^4.0.1",
+    "bs-webapi": "^0.19.1",
     "emotion-theming": "^10.0.19",
     "focus-visible": "^5.0.2",
     "react": "^16.9.0",
     "react-dom": "^16.9.0",
-    "react-scripts": "3.1.2"
+    "react-scripts": "3.1.2",
+    "recoil": "^0.5.2",
+    "rescript-notifications": "^0.0.24",
+    "rescript-recoil": "^3.0.0"
   },
   "scripts": {
     "start": "react-scripts start",

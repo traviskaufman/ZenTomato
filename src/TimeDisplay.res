@@ -3,11 +3,11 @@ module Styles = {
 
   let time = style(. [
     fontSize(rem(12.)),
-    media(. "max-width: 720px", [fontSize(rem(6.))]),
+    media(. "(max-width: 720px)", [fontSize(rem(6.))]),
     fontWeight(#num(300)),
     lineHeight(#abs(1.)),
-    letterSpacing(#rem(-0.015)),
-    margin2(~v=px(20), ~h=#auto),
+    letterSpacing(rem(-0.015)),
+    margin2(~v=px(20), ~h=auto),
   ])
 }
 

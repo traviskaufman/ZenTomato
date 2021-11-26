@@ -6,18 +6,18 @@ import * as React from "react";
 var footer = CssJs.style([
       CssJs.fontSize(CssJs.rem(0.75)),
       CssJs.opacity(0.7),
-      CssJs.textAlign("center"),
-      CssJs.position("absolute"),
-      CssJs.left("zero"),
-      CssJs.right("zero"),
+      CssJs.textAlign(CssJs.center),
+      CssJs.position(CssJs.absolute),
+      CssJs.left(CssJs.zero),
+      CssJs.right(CssJs.zero),
       CssJs.bottom(CssJs.px(20)),
-      CssJs.media("max-height: 500px", [CssJs.display("none")]),
+      CssJs.media("(max-height: 500px)", [CssJs.display(CssJs.none)]),
       CssJs.selector("a", [
             CssJs.color(CssJs.$$var("--theme-text-on-primary")),
-            CssJs.textDecoration("none"),
-            CssJs.hover([CssJs.textDecoration("underline")]),
-            CssJs.active([CssJs.textDecoration("underline")]),
-            CssJs.focus([CssJs.textDecoration("underline")])
+            CssJs.textDecoration(CssJs.none),
+            CssJs.hover([CssJs.textDecoration(CssJs.underline)]),
+            CssJs.active([CssJs.textDecoration(CssJs.underline)]),
+            CssJs.focus([CssJs.textDecoration(CssJs.underline)])
           ])
     ]);
 

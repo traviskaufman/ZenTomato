@@ -2,7 +2,6 @@
 import { useReducer, useEffect, useRef } from "react";
 import { css, jsx } from "@emotion/core";
 import { ThemeProvider } from "emotion-theming";
-import { ReactComponent as NotificationBell } from "./assets/notificationBell.svg";
 import { ReactComponent as Play } from "./assets/Play.svg";
 import { ReactComponent as Pause } from "./assets/Pause.svg";
 import { ReactComponent as Stop } from "./assets/Stop.svg";
@@ -11,6 +10,9 @@ import LogoImage from "./LogoImage";
 import Footer from "./Footer";
 import TimeDisplay from "./TimeDisplay";
 import AppContainer from "./AppContainer";
+import NotificationSettings, {
+  Model as NotificationSettingsModel,
+} from "./NotificationSettings";
 
 const DEBUG = process.env.NODE_ENV !== "production" && /* change this */ true;
 const SUPPORTS_NOTIFS = "Notification" in window;
@@ -44,25 +46,6 @@ const styles = {
     }
     align-items: center;
     justify-content: center;
-  `,
-  topMenuItem: css`
-    ${cssHelpers.btnReset};
-    ${cssHelpers.hover};
-    cursor: pointer;
-    /* TODO: Refactor with control */
-    transition: transform 125ms ease;
-
-    margin-bottom: 20px;
-    &:last-child {
-      margin-bottom: 0;
-    }
-    @media (max-width: 600px) {
-      margin-bottom: 0;
-      margin-right: 20px;
-      &:last-child {
-        margin-right: 0;
-      }
-    }
   `,
   appUI: css`
     display: flex;
@@ -279,23 +262,6 @@ function App() {
             shownForCycle: false,
           },
         };
-      case "requestNotificationAccess":
-        return {
-          ...state,
-          notifications: {
-            ...state.notifications,
-            isRequestingAccess: true,
-          },
-        };
-      case "setNotificationsEnabled":
-        return {
-          ...state,
-          notifications: {
-            ...state.notifications,
-            isRequestingAccess: false,
-            enabled: action.payload,
-          },
-        };
       case "notificationSeen":
         return {
           ...state,
@@ -378,31 +344,11 @@ function App() {
     }
   }, [formattedSeconds, state.clockStatus]);
 
-  useEffect(() => {
-    (async () => {
-      if (state.notifications.isRequestingAccess) {
-        // TODO: Permission requesting should go into a thunk.
-        const permission = await Notification.requestPermission();
-        if (permission === "denied") {
-          alert(
-            "Notifications have been disabled for ZenTomato. You can re-enable them in your browser's settings."
-          );
-        }
-        setNotificationsEnabled(permission === "granted");
-        return;
-      }
-      if (state.notifications.enabled) {
-        localStorage.setItem("notificationsEnabled", "you betcha!");
-      } else {
-        localStorage.removeItem("notificationsEnabled");
-      }
-    })();
-  }, [state.notifications.isRequestingAccess, state.notifications.enabled]);
-
+  const notificationsEnabled = NotificationSettingsModel.useIsEnabled();
   useEffect(() => {
     if (
       state.clockStatus === "finished" &&
-      state.notifications.enabled &&
+      notificationsEnabled &&
       !state.notifications.shownForCycle
     ) {
       const finishingPomodoro = state.pomodoro.currentCycle === "pomodoro";
@@ -423,7 +369,7 @@ function App() {
     }
   }, [
     state.clockStatus,
-    state.notifications.enabled,
+    notificationsEnabled,
     state.notifications.shownForCycle,
     state.pomodoro.currentCycle,
   ]);
@@ -459,19 +405,6 @@ function App() {
 
   const handleStop = () => dispatch({ type: "stop" });
 
-  const requestNotificationAccess = () =>
-    dispatch({ type: "requestNotificationAccess" });
-
-  const setNotificationsEnabled = (enabled) =>
-    dispatch({ type: "setNotificationsEnabled", payload: enabled });
-
-  const handleNotifBellClick = () => {
-    if (Notification.permission !== "granted") {
-      return requestNotificationAccess();
-    }
-    setNotificationsEnabled(!state.notifications.enabled);
-  };
-
   const selectCycle = (cycle) => {
     dispatch({ type: "selectCycle", payload: cycle });
     if (state.clockStatus === "finished") {
@@ -482,14 +415,6 @@ function App() {
 
   const isRunning = state.clockStatus === "running";
 
-  const notificationBellStyle = (theme) => css`
-    #bell {
-      transition: fill 125ms ease;
-      fill: ${state.notifications.enabled ? theme.textOnPrimary : "none"};
-    }
-    margin-right: 8px;
-  `;
-
   const currentCycle = state.pomodoro.currentCycle;
 
   return (
@@ -497,21 +422,7 @@ function App() {
       <AppContainer>
         <nav css={styles.topMenu}>
           <LogoImage />
-          <button
-            css={[styles.topMenuItem]}
-            aria-label={`${
-              state.notifications.enabled ? "Disable" : "Enable"
-            } notifications`}
-            onClick={handleNotifBellClick}
-            hidden={!SUPPORTS_NOTIFS}
-          >
-            <NotificationBell
-              css={notificationBellStyle}
-              title={`${
-                state.notifications.enabled ? "Disable" : "Enable"
-              } notifications`}
-            />
-          </button>
+          <NotificationSettings />
         </nav>
         <main css={styles.appUI}>
           <section css={styles.segmentBar}>

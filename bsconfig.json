@@ -10,5 +10,13 @@
     "in-source": true
   },
   "reason": { "react-jsx": 3 },
-  "bs-dependencies": ["@rescript/react", "bs-css-emotion"]
+  "bs-dependencies": [
+    "@rescript/react",
+    "bs-css",
+    "bs-css-emotion",
+    "rescript-recoil",
+    "rescript-notifications",
+    "@ryyppy/rescript-promise",
+    "bs-webapi"
+  ]
 }
