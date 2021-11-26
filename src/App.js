@@ -15,6 +15,7 @@ import NotificationSettings, {
 } from "./NotificationSettings";
 import Nav from "./Nav";
 import AppUI from "./AppUI";
+import CycleControls from "./CycleControls";
 
 const DEBUG = process.env.NODE_ENV !== "production" && /* change this */ true;
 const SUPPORTS_NOTIFS = "Notification" in window;
@@ -57,18 +58,6 @@ const styles = {
       opacity: 0.54;
       pointer-events: none;
     }
-  `,
-  segmentBar: (theme) => css`
-    box-sizing: border-box;
-    border-radius: 8px;
-    width: 100%;
-    height: 48px;
-    border: 1px solid ${theme.secondary};
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    z-index: 1;
-    overflow: hidden;
   `,
   segmentControl: (isSelected) => (theme) =>
     css`
@@ -385,7 +374,7 @@ function App() {
           <NotificationSettings />
         </Nav>
         <AppUI>
-          <section css={styles.segmentBar}>
+          <CycleControls>
             <button
               css={styles.segmentControl(currentCycle === "pomodoro")}
               onClick={() => selectCycle("pomodoro")}
@@ -404,7 +393,7 @@ function App() {
             >
               Long break
             </button>
-          </section>
+          </CycleControls>
           <TimeDisplay formattedSeconds={formattedSeconds} />
           <div css={styles.controls}>
             <button
